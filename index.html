@@ -2,11 +2,102 @@
 <html lang="es-AR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prueba de GitHub Pages</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finanzas Personales</title>
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanzas">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f4f6fa;color:#0f172a;display:grid;place-items:center;padding:24px}
+.box{width:min(420px,100%);background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px 24px;text-align:center;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+.logo{width:72px;height:72px;margin:0 auto 14px;display:block;border-radius:16px}
+h1{font-size:22px;margin:0 0 6px}
+p{margin:0 0 16px;color:#64748b;font-size:14px}
+.btn{display:block;width:100%;font:inherit;font-weight:600;padding:13px 16px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;cursor:pointer;margin-top:10px;text-decoration:none}
+.btn-primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.note{margin-top:16px;font-size:13px;color:#64748b}
+.err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px;text-align:left}
+[hidden]{display:none!important}
+</style>
 </head>
-<body style="font-family:system-ui,sans-serif;padding:32px">
-<h2>GitHub Pages funciona</h2>
-<p>Este es un archivo de prueba. Lo vamos a reemplazar en el próximo paso.</p>
+<body>
+<main class="box">
+  <img class="logo" src="icons/icon-192.png" alt="">
+  <h1>Finanzas Personales</h1>
+  <p id="msg">Abriendo la aplicación…</p>
+  <div class="err" id="err" hidden></div>
+  <a class="btn btn-primary" id="open" href="#" hidden>Abrir la aplicación</a>
+  <button class="btn" id="install" type="button" hidden>Instalar aplicación</button>
+  <div class="note" id="howto" hidden></div>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var url = (typeof FINANZAS_EXEC_URL === 'string') ? FINANZAS_EXEC_URL.trim() : '';
+  var valid = /^https:\/\/script\.google\.com\/.+\/exec(\?.*)?$/.test(url);
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var forceStay = /[?&]modo=instalar\b/.test(location.search);   // para volver a esta portada desde el navegador
+
+  // Service worker (necesario para la instalación)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW no registrado', e); });
+    });
+  }
+
+  if (!valid) {
+    $('msg').textContent = 'Falta configurar la dirección de la aplicación.';
+    var er = $('err');
+    er.textContent = 'Editá el archivo config.js del repositorio y pegá la URL /exec de tu despliegue de Apps Script.';
+    er.hidden = false;
+  } else if (standalone && !forceStay) {
+    // Abierta desde el ícono instalado: ir directo a la aplicación.
+    location.replace(url);
+    return;
+  } else {
+    $('open').href = url;
+    $('open').hidden = false;
+    $('msg').textContent = 'Instalá la aplicación en tu dispositivo o abrila directamente.';
+  }
+
+  // Botón de instalación (Chrome / Android)
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault();
+    deferred = ev;
+    if (!standalone) $('install').hidden = false;
+  });
+  $('install').addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; $('install').hidden = true; });
+  });
+  window.addEventListener('appinstalled', function () {
+    $('install').hidden = true;
+    $('msg').textContent = 'Aplicación instalada. Abrila desde el ícono de tu pantalla de inicio.';
+  });
+
+  // Ayuda si el navegador no ofrece el botón
+  if (!standalone) {
+    setTimeout(function () {
+      if (!deferred) {
+        var h = $('howto');
+        h.textContent = 'Si no aparece el botón «Instalar aplicación», abrí el menú ⋮ de Chrome y elegí «Instalar aplicación» (o «Agregar a la pantalla principal»).';
+        h.hidden = false;
+      }
+    }, 2500);
+  }
+})();
+</script>
 </body>
 </html>
